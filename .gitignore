@@ -1,0 +1,23 @@
+# venvs
+.venv/
+venv/
+env/
+
+# OS cruft
+.DS_Store
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# local packages and artifacts
+*.egg
+*.egg-info/
+logs/
+mlflow/artifacts/
+catboost_info/
+
+# data 
+.env
+dataset

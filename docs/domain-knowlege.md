@@ -1,0 +1,1 @@
+Modifications & Deferred Payments: It tracks whether a borrower asked for a loan modification, forbearance, or payment deferral—strong behavioral indicators of financial distress before an actual hard default happens.

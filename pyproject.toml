@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=61.0.0"]
+backend = "setuptools.build_meta"
+
+[project]
+name = "workspace"
+version = "0.1.0"
+description = "credit risk scorecard"
+dependencies = [] # requirements.txt manage packages
+
+[tool.setuptools.packages.find]
+where = ["."]
