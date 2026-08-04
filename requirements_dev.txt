@@ -1,1 +1,1 @@
-zipfile
+python-dotenv

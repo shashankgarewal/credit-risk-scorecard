@@ -1,7 +1,7 @@
 from pathlib import Path
 from src.utils import logger
 
-root_markers = [".git", "requirements.txt"]
+root_markers = [".git", "requirements.txt", "src"]
 
 def get_project_root() -> Path:
     """Climb up from the current file until a sentinel file is found."""
