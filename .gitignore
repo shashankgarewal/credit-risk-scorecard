@@ -1,3 +1,6 @@
+# include files exception
+!dataset/manifest.json
+
 # venvs
 .venv/
 venv/
