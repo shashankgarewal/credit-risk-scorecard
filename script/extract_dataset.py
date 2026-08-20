@@ -143,18 +143,15 @@ class FreddieMacExtractor:
         return "unknown"
 
     @staticmethod
-    def extract_vintage(filename: str) -> str:
-        """Extracts vintage quarter string (e.g., '2020Q1', '2006Q3') from filename."""
-        match = re.search(r"(\d{4}Q[1-4])", filename, re.IGNORECASE)
+    def parse_year_quarter(filename: str) -> tuple[str, str]:
+        """Extracts (year, quarter_number) e.g. ('2020', '1') from filename."""
+        match = re.search(r"(\d{4})Q([1-4])", filename, re.IGNORECASE)
         if match:
-            return match.group(1).upper()
+            return match.group(1), match.group(2)
         
-        # Fallback search for year
         match_year = re.search(r"(\d{4})", filename)
-        if match_year:
-            return match_year.group(1)
-        
-        return "unknown_vintage"
+        year = match_year.group(1) if match_year else "unknown"
+        return year, "1"
 
     @staticmethod
     def safe_rmtree(target_dir: Path, retries: int = 5, delay: float = 0.5) -> None:
@@ -189,22 +186,33 @@ class FreddieMacExtractor:
                     pass
 
     def is_yearly_archive_needed(self, zip_file: Path) -> bool:
-        """Returns True if any quarterly extract for the yearly zip archive needs conversion."""
+        """Returns True if any inner file/quarter in the yearly zip needs extraction or is missing on disk."""
         zip_name = zip_file.name
         zip_info = self.manifest.get(zip_name, {})
         download_utc_str = zip_info.get("last_download_utc")
 
-        quarterly_keys = [k for k in zip_info.keys() if k.endswith("_extract_utc")]
-        if not quarterly_keys:
+        try:
+            with zipfile.ZipFile(zip_file) as z:
+                inner_items = z.namelist()
+        except Exception:
             return True
 
-        for q_key in quarterly_keys:
-            q_data = zip_info.get(q_key, {})
-            if not isinstance(q_data, dict) or not q_data:
-                return True
-            for ext_ts in q_data.values():
-                if is_extract_needed(download_utc_str, ext_ts):
+        for item in inner_items:
+            if item.endswith(".zip") or item.endswith(".txt"):
+                year, quarter = self.parse_year_quarter(item)
+                q_key = f"{year}Q{quarter}_extract_utc"
+                q_data = zip_info.get(q_key, {})
+
+                if not isinstance(q_data, dict) or not q_data:
                     return True
+
+                for dataset_type in ("origination", "performance"):
+                    ext_ts = q_data.get(dataset_type)
+                    parquet_file = (
+                        self.extract_dir / dataset_type / f"year={year}" / f"quarter={quarter}" / "data.parquet"
+                    )
+                    if is_extract_needed(download_utc_str, ext_ts) or not parquet_file.exists():
+                        return True
 
         return False
 
@@ -261,7 +269,7 @@ class FreddieMacExtractor:
     def process_quarter_dir(self, quarter_dir: Path, inner_zip_name: str, outer_zip_name: str) -> None:
         """Processes all TXT files extracted inside a quarterly directory."""
         quarter_start = time.process_time()
-        vintage = self.extract_vintage(inner_zip_name)
+        zip_year, zip_quarter = self.parse_year_quarter(inner_zip_name)
         zip_info = self.manifest.get(outer_zip_name, {})
         download_utc_str = zip_info.get("last_download_utc")
 
@@ -269,11 +277,15 @@ class FreddieMacExtractor:
 
         for txt_file in txt_files:
             dataset_type = self.get_dataset_type(txt_file.name)
-            file_vintage = self.extract_vintage(txt_file.name)
-            if file_vintage == "unknown_vintage":
-                file_vintage = vintage
+            year, quarter = self.parse_year_quarter(txt_file.name)
+            if year == "unknown":
+                year, quarter = zip_year, zip_quarter
 
-            q_key = f"{file_vintage}_extract_utc"
+            output_parquet = (
+                self.extract_dir / dataset_type / f"year={year}" / f"quarter={quarter}" / "data.parquet"
+            )
+
+            q_key = f"{year}Q{quarter}_extract_utc"
             existing_q_extracts = zip_info.get(q_key, {})
             existing_ext_ts = (
                 existing_q_extracts.get(dataset_type)
@@ -281,13 +293,9 @@ class FreddieMacExtractor:
                 else None
             )
 
-            if not is_extract_needed(download_utc_str, existing_ext_ts):
-                logger.info(f"Skipping {file_vintage} {dataset_type} - extract UTC is up to date.")
+            if not is_extract_needed(download_utc_str, existing_ext_ts) and output_parquet.exists():
+                logger.info(f"Skipping {year} Q{quarter} {dataset_type} - extract UTC is up to date.")
                 continue
-
-            output_parquet = (
-                self.extract_dir / dataset_type / f"vintage={file_vintage}" / f"{txt_file.stem}.parquet"
-            )
 
             try:
                 try:
@@ -300,7 +308,8 @@ class FreddieMacExtractor:
                 self.processed_files.append({
                     "file": txt_file.name,
                     "dataset_type": dataset_type,
-                    "vintage": file_vintage,
+                    "year": year,
+                    "quarter": quarter,
                     "rows": n_rows,
                     "cols": n_cols,
                     "time_seconds": round(duration, 4),
