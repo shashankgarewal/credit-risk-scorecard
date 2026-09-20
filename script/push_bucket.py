@@ -128,7 +128,7 @@ def load_bucket():
 
     for parquet_path, dataset_type, year, quarter in push_parquets:
 
-        s3_key = str(parquet_path.relative_to(ROOT).as_posix())
+        s3_key = str(parquet_path.relative_to(EXTRACT_DIR.parent).as_posix())
         logger.info(f"({file_push_counter + 1}/{len(push_parquets)}) Start push [{s3_key}] to cloud storage bucket!")
         s3_client.upload_file(str(parquet_path), AWS_BUCKET_NAME, s3_key)
         logger.info(f"({file_push_counter + 1}/{len(push_parquets)}) Successfully pushed [{s3_key}] to cloud storage bucket!")
