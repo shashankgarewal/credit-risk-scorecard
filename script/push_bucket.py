@@ -36,7 +36,7 @@ def s3_object_exists(s3_client: boto3.client, s3_key: str) -> bool:
 
 def need_push(
     s3_client: boto3.client,
-    path: Path,
+    parquet_path: Path,
     last_extract_utc_str: str | None,
     push_utc_str: str | None
     ) -> bool:
@@ -44,7 +44,7 @@ def need_push(
     Returns True when file needs to be pushed to cloud storage bucket.
     
     """
-    s3_key = str(path.relative_to(ROOT).as_posix())
+    s3_key = str(parquet_path.relative_to(EXTRACT_DIR.parent).as_posix())
     if not s3_object_exists(s3_client, s3_key):
         return True
     if not push_utc_str:
@@ -101,9 +101,9 @@ def get_aws_session():
     )
 
 
-def parquet_metadata(path: Path):
+def parquet_metadata(parquet_path: Path):
     """returns dataset_type, year, quarter of parquet file"""
-    parts = path.relative_to(EXTRACT_DIR).parts
+    parts = parquet_path.relative_to(EXTRACT_DIR).parts
     dataset_type = parts[0]
     year = parts[1].replace("year=", "")[-4:]
     quarter = parts[2].replace("quarter=", "")[-1]

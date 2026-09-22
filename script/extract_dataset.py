@@ -79,16 +79,21 @@ class LayoutManager:
 
         for excel_path in excel_files:
             try:
-                for sheet_name in pl.read_excel(excel_path, sheet_id=0):
+                sheets_dict = pl.read_excel(excel_path, sheet_id=0)
+                for sheet_name in sheets_dict:
                     df = pl.read_excel(excel_path, sheet_name=sheet_name, read_options={"header_row": 1})
+                    attr_col = next((c for c in df.columns if "ATTRIBUTE" in str(c).upper()), None)
+                    if not attr_col:
+                        continue
+
                     col_names = [
-                        cleaned for row in df.iter_rows(named=True)
-                        if (attr := row.get("ATTRIBUTE NAME")) and (cleaned := clean_column_name(attr))
+                        cleaned for val in df[attr_col].to_list()
+                        if val is not None and str(val).strip() != "" and (cleaned := clean_column_name(val))
                     ]
                     if not col_names:
                         continue
 
-                    s = sheet_name.lower()
+                    s = str(sheet_name).lower()
                     dtype = "origination" if "orig" in s else ("performance" if any(k in s for k in ("perf", "svcg", "time", "monthly")) else "unknown")
                     self.layout_map[(dtype, len(col_names))] = col_names
                     self.attr_count_map[len(col_names)] = col_names
