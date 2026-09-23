@@ -1,1 +1,17 @@
 python-dotenv
+duckdb
+polars
+ipykernel
+fastexcel
+playwright
+numpy
+pytest
+google-cloud-storage
+google-api-core
+boto3
+protobuf==7.35.1
+pyarrow==21.0.0
+pytest==9.1.1
+python-dotenv==1.2.3
+PyYAML==6.0.3
+Requests==2.34.2
