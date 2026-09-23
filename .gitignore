@@ -2,12 +2,16 @@
 .venv/
 venv/
 env/
+temp/
 
-# OS cruft
+# OS and vscode cruft
 .DS_Store
+.vscode/
+.idea/
 
 # Python cache
 __pycache__/
+.pytest_cache/
 *.py[cod]
 *.pyo
 
