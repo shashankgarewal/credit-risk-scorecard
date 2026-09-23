@@ -1,0 +1,11 @@
+# relative path from project root
+raw_data_dir: dataset/raw
+extract_data_dir: dataset/extract
+temp_data_dir: dataset/temp
+manifest_path: dataset/manifest.json
+log_dir: logs
+layout_dir: docs/layout
+
+ground_period: 200001 # YYYYMM (pseudo reference date/period)
+ground_year: 200001 # YYYYMM (backward compatibility)
+default_horizon_months: 12 # observation window in months for target calculation
